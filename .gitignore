@@ -1,0 +1,40 @@
+# ── Go ───────────────────────────────────────────────────────────────────────
+# Derlenmiş binary dosyalar (Windows ve Linux için)
+bin/
+gateway
+gateway.exe
+*.exe
+*.test
+*.prof
+
+# ── Python ──────────────────────────────────────────────────────────────────
+# Python çalışma zamanı dosyaları ve cache'leri
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv
+venv/
+env/
+
+# ── Docker ──────────────────────────────────────────────────────────────────
+# Docker verileri ve geçici dosyalar
+.docker-compose.unhealthy
+# Redis veri klasörü (GitHub'a veri tabanı yollanmaz!)
+redis_data/
+
+# ── IDE & İşletim Sistemi ───────────────────────────────────────────────────
+# VS Code, JetBrains ve OS özel dosyalar
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Proje Özel ──────────────────────────────────────────────────────────────
+# Test coverage raporları
+coverage.out
+coverage.html
+
+# GİZLİ BİLGİLER (ÇOK KRİTİK!)
+# Eğer ilerde .env dosyası kullanırsan kesinlikle gitmemeli
+.env
