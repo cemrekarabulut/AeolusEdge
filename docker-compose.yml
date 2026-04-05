@@ -1,0 +1,93 @@
+version: "3.9"
+
+# AeolusEdge — Docker Compose (V2 Güncel)
+#
+# BAŞLATMA:
+#   docker compose up --build -d
+#
+# DURDURMA:
+#   docker compose down
+
+services:
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: aeolus-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # Redis içinde cli olduğu için bu çalışır
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Edge Gateway (Go) ───────────────────────────────────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: aeolus-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      HTTP_ADDR:       ":8080"
+      LOG_LEVEL:       "info"
+      JWT_SECRET:      "${JWT_SECRET:-supersecretkey-change-in-production-env}"
+      REDIS_ADDR:      "redis:6379"
+      REDIS_DB:        "0"
+      WORKER_COUNT:    "16"
+      WORKER_BUF_SIZE: "512"
+      CB_THRESHOLD:    "5"
+      CB_TIMEOUT_S:    "30"
+    depends_on:
+      redis:
+        condition: service_healthy
+    # DÜZELTME: Scratch imajında wget/shell olmadığı için healthcheck kaldırıldı [cite: 16, 17]
+    restart: unless-stopped
+
+  # ── Analytics Engine (Python) ───────────────────────────────────────────────
+  analytics:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile.analytics
+    container_name: aeolus-analytics
+    environment:
+      REDIS_URL:      "redis://redis:6379/0"
+      CONSUMER_NAME:  "engine-1"
+      WINDOW_SIZE:    "60"
+      Z_THRESHOLD:    "3.0"
+      BATCH_SIZE:     "50"
+      BLOCK_MS:       "500"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Turbine Simulator (Python) ──────────────────────────────────────────────
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile.simulator
+    container_name: aeolus-simulator
+    environment:
+      GATEWAY_URL:     "http://gateway:8080/ingest"
+      JWT_SECRET:      "${JWT_SECRET:-supersecretkey-change-in-production-env}"
+      TURBINE_COUNT:   "10"
+      SEND_INTERVAL_S: "0.5"
+    depends_on:
+      gateway:
+        condition: service_started # DÜZELTME: service_healthy yerine service_started yapıldı
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local

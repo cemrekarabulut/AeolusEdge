@@ -1,0 +1,19 @@
+# Dockerfile.analytics — Analytics Engine
+FROM python:3.12-slim
+
+# Güvenlik: root olmayan kullanıcı
+RUN groupadd -r aeolus && useradd -r -g aeolus aeolus
+
+WORKDIR /app
+
+# Önce sadece requirements → layer cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY analytics_engine.py .
+
+# Sahiplik
+RUN chown -R aeolus:aeolus /app
+USER aeolus
+
+CMD ["python", "-u", "analytics_engine.py"]

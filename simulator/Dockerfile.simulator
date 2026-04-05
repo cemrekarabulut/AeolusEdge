@@ -1,0 +1,16 @@
+# Dockerfile.simulator — Turbine Simulator
+FROM python:3.12-slim
+
+RUN groupadd -r aeolus && useradd -r -g aeolus aeolus
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY turbine_simulator.py .
+
+RUN chown -R aeolus:aeolus /app
+USER aeolus
+
+CMD ["python", "-u", "turbine_simulator.py"]
